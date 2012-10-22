@@ -73,14 +73,14 @@ class ModelManager(object):
         all_key = self._key('__all__')
         expire_key = self._key('__expire__')
         key = self._key('object:{0}', instance_id)
+        extra_keys = orm.redis.keys(self._key('object:{0}:*', instance_id))
         if not pipe:
             pipe = orm.redis.pipeline()
         pipe.srem(all_key, instance_id)
         pipe.zrem(expire_key, instance_id)
-        pipe.delete(key)
+        pipe.delete(key, *extra_keys)
         if apply:
             pipe.execute()
-        return pipe
 
     def expire(self):
         expire_ts = datetime_to_timestamp(utcnow())

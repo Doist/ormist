@@ -64,3 +64,13 @@ def utcnow():
     # for explanation why this function is required
     # tl;dr: for tests
     return datetime.datetime.utcnow()
+
+
+def random_true(prob):
+    """
+    Return True with the probability of :param:`prob`
+
+    :param prob: float value in range [0, 1]. 0 means "never return True", 1
+                 means "always return True"
+    """
+    return random.random() < prob

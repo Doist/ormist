@@ -2,7 +2,7 @@
 import threading
 import pickle
 from .utils import (timestamp_to_datetime, datetime_to_timestamp, random_string,
-                    utcnow)
+                    utcnow, random_true)
 
 #--- ORM object
 
@@ -40,13 +40,16 @@ class ModelManager(object):
             orm.redis.delete(*keys)
 
     def get(self, _id):
-        self.expire()
+        if random_true(0.01):
+            self.expire()
         key = self._key('object:{0}', _id)
         value = orm.redis.get(key)
         if value:
             expire_key = self._key('object:{0}:expire', _id)
             expire_value = orm.redis.get(expire_key)
             expire = timestamp_to_datetime(expire_value)
+            if expire and expire < utcnow():
+                return None
             attrs = pickle.loads(value)
             return self.model(_id, expire=expire, **attrs)
 
@@ -107,7 +110,9 @@ class ModelManager(object):
         if orm.redis.exists(all_key):
             ids = orm.redis.smembers(all_key)
         for _id in ids:
-            yield self.get(_id)
+            instance = self.get(_id)
+            if instance:
+                yield instance
 
 
 
@@ -149,7 +154,9 @@ class TaggedModelManager(ModelManager):
             keys.append(key)
         ids = orm.redis.sinter(*keys)
         for _id in ids:
-            yield self.get(_id)
+            instance = self.get(_id)
+            if instance:
+                yield instance
 
 
 class TaggedAttrsModelManager(TaggedModelManager):

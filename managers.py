@@ -136,6 +136,17 @@ class TaggedModelManager(ModelManager):
         pipe.execute()
         instance._saved_tags = instance.tags
 
+    def delete_instance(self, instance):
+        # we have to remove instance from all tags before removing the
+        # object itself
+        tags_keys = self._key('object:{0}:tags', instance._id)
+        tags = orm.redis.smembers(tags_keys)
+        pipe = orm.redis.pipeline()
+        for tag in tags:
+            key = self._key('tags:{0}', tag)
+            pipe.srem(key, instance._id)
+        self.delete_instance_by_id(instance._id, pipe=pipe, apply=False)
+        pipe.execute()
 
     def get(self, _id):
         instance = super(TaggedModelManager, self).get(_id)
@@ -145,14 +156,17 @@ class TaggedModelManager(ModelManager):
             instance.tags = tags
         return instance
 
-    def find(self, *tags):
+    def find_ids(self, *tags):
         if not tags:
-            return
+            return []
         keys = []
         for tag in tags:
             key = self._key('tags:{0}', tag)
             keys.append(key)
-        ids = orm.redis.sinter(*keys)
+        return orm.redis.sinter(*keys)
+
+    def find(self, *tags):
+        ids = self.find_ids(*tags)
         for _id in ids:
             instance = self.get(_id)
             if instance:

@@ -67,6 +67,8 @@ class Model(object):
         self.expire = expire_to_datetime(expire)
 
     def save(self):
+        if hasattr(self, 'validate') and callable(self.validate):
+            self.validate()
         self.objects.save_instance(self)
 
     def delete(self):

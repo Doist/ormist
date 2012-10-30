@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-import threading
 import pickle
 from .utils import (timestamp_to_datetime, datetime_to_timestamp, random_string,
                     utcnow, random_true)
 
 #--- ORM object
+class ORM(object):
+    pass
 
-orm = threading.local()
+orm = ORM()
 
 def configure(redis, prefix):
     """

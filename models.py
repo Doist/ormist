@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import calendar
+import time
 import re
 from .managers import ModelManager, TaggedModelManager, TaggedAttrsModelManager
 from .utils import expire_to_datetime
@@ -81,8 +83,24 @@ class Model(object):
         for arg in args:
             self.attrs.pop(arg, None)
 
+    def ttl(self):
+        """
+        Return time to live in seconds (integer) or None, if instance is never
+        expired
 
+        If expire value is in the past, return 0.
 
+        .. note:: test for ``instance.ttl is None``, not ``not instance.ttl``,
+                  because in this context None is not the same as 0.
+        """
+        if not self.expire:
+            return None
+        expire = calendar.timegm(self.expire.timetuple())
+        now =  int(time.time())
+        ttl = expire - now
+        if ttl < 0:
+            return 0
+        return ttl
 
 class TaggedModel(Model):
     """

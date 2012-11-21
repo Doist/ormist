@@ -1,0 +1,10 @@
+language: python
+services:
+  - redis-server
+python:
+  - "3.3"
+  - "2.7"
+  - "2.6"
+install:
+  - "pip install . --use-mirrors"
+script: py.test

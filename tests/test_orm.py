@@ -17,6 +17,7 @@ class Book(ormist.TaggedModel):
 class TaggedUser(ormist.TaggedAttrsModel):
     objects = ormist.TaggedAttrsModelManager(['name', ])
 
+
 def setup_function(function):
     User.objects.full_cleanup()
     Book.objects.full_cleanup()

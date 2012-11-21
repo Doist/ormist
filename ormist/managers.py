@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pickle
 from .utils import (timestamp_to_datetime, datetime_to_timestamp, random_string,
-                    utcnow, random_true)
+                    utcnow, random_true, xrange, b, u)
 
 #--- ORM object
 class ORM(object):
@@ -23,6 +23,7 @@ class ModelManager(object):
     # and "model" attribute,
 
     def _key(self, key, *args, **kwargs):
+        key = u(key)
         prefix = orm.prefix
         model_name = self.model_name
         if prefix:
@@ -32,7 +33,7 @@ class ModelManager(object):
 
         if args or kwargs:
             template = template.format(*args, **kwargs)
-        return template
+        return b(template)
 
     def full_cleanup(self):
         key = self._key('*')
@@ -41,6 +42,7 @@ class ModelManager(object):
             orm.redis.delete(*keys)
 
     def get(self, _id):
+        _id = u(_id)
         if random_true(0.01):
             self.expire()
         key = self._key('object:{0}', _id)
@@ -74,6 +76,7 @@ class ModelManager(object):
         self.delete_instance_by_id(instance._id)
 
     def delete_instance_by_id(self, instance_id, pipe=None, apply=True):
+        instance_id = u(instance_id)
         all_key = self._key('__all__')
         expire_key = self._key('__expire__')
         key = self._key('object:{0}', instance_id)
@@ -140,11 +143,11 @@ class TaggedModelManager(ModelManager):
     def delete_instance(self, instance):
         # we have to remove instance from all tags before removing the
         # object itself
-        tags_keys = self._key('object:{0}:tags', instance._id)
+        tags_keys = self._key('object:{0}:tags', u(instance._id))
         tags = orm.redis.smembers(tags_keys)
         pipe = orm.redis.pipeline()
         for tag in tags:
-            key = self._key('tags:{0}', tag)
+            key = self._key('tags:{0}', u(tag))
             pipe.srem(key, instance._id)
         self.delete_instance_by_id(instance._id, pipe=pipe, apply=False)
         pipe.execute()
@@ -152,9 +155,9 @@ class TaggedModelManager(ModelManager):
     def get(self, _id):
         instance = super(TaggedModelManager, self).get(_id)
         if instance:
-            tags_key = self._key('object:{0}:tags', _id)
-            tags = orm.redis.smembers(tags_key) or []
-            instance.tags = tags
+            tags_key = self._key('object:{0}:tags', u(_id))
+            tags = orm.redis.smembers(u(tags_key)) or []
+            instance.tags = [u(tag) for tag in tags]
         return instance
 
     def find_ids(self, *tags):
@@ -163,7 +166,7 @@ class TaggedModelManager(ModelManager):
         keys = []
         for tag in tags:
             key = self._key('tags:{0}', tag)
-            keys.append(key)
+            keys.append(u(key))
         return orm.redis.sinter(*keys)
 
     def find(self, *tags):
@@ -181,9 +184,9 @@ class TaggedAttrsModelManager(TaggedModelManager):
 
     def attrs_to_tags(self, attrs):
         tags = []
-        for k, v in attrs.iteritems():
+        for k, v in attrs.items():
             if k not in self.exclude_attrs:
-                tags.append(u'{0}:{1}'.format(unicode(k), unicode(v)))
+                tags.append(u'{0}:{1}'.format(u(k), u(v)))
         return tags
 
     def find(self, **attrs):

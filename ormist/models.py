@@ -7,6 +7,7 @@ from .utils import expire_to_datetime
 
 #--- Metaclass magic
 
+
 class ModelBase(type):
     """
     Metaclass for Model and its subclasses
@@ -17,7 +18,7 @@ class ModelBase(type):
     def __new__(cls, name, parents, attrs):
         model_manager = attrs.pop('objects', None)
         if not model_manager:
-            parent_mgrs = filter(None, [getattr(p, 'objects', None) for p in parents])
+            parent_mgrs = list(filter(None, [getattr(p, 'objects', None) for p in parents]))
             mgr_class = parent_mgrs[0].__class__
             model_manager = mgr_class()
         attrs['objects'] = model_manager
@@ -40,8 +41,6 @@ class Model(object):
     """
     Base model class
     """
-    __metaclass__ = ModelBase
-    objects = ModelManager()
 
 
     def __init__(self, _id=None, expire=None, **attrs):
@@ -101,6 +100,11 @@ class Model(object):
         if ttl < 0:
             return 0
         return ttl
+
+
+# support for python2x and py3k syntax
+Model = ModelBase('Model', (Model, ), {'objects': ModelManager()})
+
 
 class TaggedModel(Model):
     """

@@ -6,7 +6,9 @@ import redis
 import ormist
 
 
-ormist.configure(redis.Redis(), 'test_ormist')
+ormist.setup_redis('default', 'localhost', 6379, db=0)
+ormist.setup_redis('db1', 'localhost', 6379, db=1)
+
 
 class User(ormist.Model):
     pass
@@ -34,6 +36,13 @@ def pytest_funcarg__user(request):
     user = User(1234, name='John Doe', age=30)
     user.save()
     request.addfinalizer(user.delete)
+    return user
+
+
+def pytest_funcarg__user_db1(request):
+    user = User(1234, name='John Doe', age=30)
+    user.save('db1')
+    request.addfinalizer(lambda: user.delete(system='db1'))
     return user
 
 
@@ -202,3 +211,10 @@ def test_ttl(user):
     assert user.ttl() > 0
     user.set_expire(datetime.datetime(2012, 1, 1)) # in the past
     assert user.ttl() == 0
+
+
+def test_different_systems(user_db1):
+    # nothing is saved in default db
+    assert User.objects.get(user_db1._id) is None
+    # the record is in the 1st database
+    assert User.objects.get(user_db1._id, system='db1') == user_db1

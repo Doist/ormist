@@ -67,13 +67,13 @@ class Model(object):
     def set_expire(self, expire):
         self.expire = expire_to_datetime(expire)
 
-    def save(self):
+    def save(self, system='default'):
         if hasattr(self, 'validate') and callable(self.validate):
             self.validate()
-        self.objects.save_instance(self)
+        self.objects.save_instance(self, system=system)
 
-    def delete(self):
-        self.objects.delete_instance(self)
+    def delete(self, system='default'):
+        self.objects.delete_instance(self, system=system)
 
     def set(self, **kwargs):
         self.attrs.update(**kwargs)

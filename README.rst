@@ -4,6 +4,10 @@ ormist: yet another Object-to-Redis mapper. Lightweight. Schema-agnostic.
 **ormist** is a object-to-redis mapper: the library helping you to work with
 persistent objects and object collections using Redis as a back-end store.
 
+.. image:: https://secure.travis-ci.org/Doist/ormist.png?branch=master
+   :alt: Build Status
+   :target: https://secure.travis-ci.org/Doist/ormist
+
 Library Features
 ----------------
 

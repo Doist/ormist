@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import sys
 import calendar
 import string
 import random
 import datetime
 
+from .compat import xrange
 
 
 def random_string(len, corpus=None):
@@ -73,23 +73,3 @@ def random_true(prob):
                  means "always return True"
     """
     return random.random() < prob
-
-#--- py3k compatibilituy (partially copy-paste from six)
-PY3 = sys.version_info[0] == 3
-if PY3:
-    xrange = range
-    text = str
-    binary = bytes
-    def b(s):
-        return s.encode("latin-1")
-else:
-    xrange = xrange
-    text = unicode
-    binary = str
-    def b(s):
-        return str(s)
-
-def u(b):
-    if isinstance(b, binary):
-        return b.decode('latin-1')
-    return b

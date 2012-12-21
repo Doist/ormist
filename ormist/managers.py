@@ -2,7 +2,8 @@
 import pickle
 import redis
 from .utils import (timestamp_to_datetime, datetime_to_timestamp, random_string,
-                    utcnow, random_true, xrange, b, u)
+                    utcnow, random_true)
+from .compat import xrange, b, u
 
 
 #--- Systems related ----------------------------------------------

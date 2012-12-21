@@ -2,7 +2,6 @@
 import datetime
 import mock
 import pytest
-import redis
 import ormist
 
 

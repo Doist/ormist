@@ -15,6 +15,11 @@ class User(ormist.Model):
 class Book(ormist.TaggedModel):
     pass
 
+class User2(ormist.Model):
+    # the same user, but stored in the db1
+    system = 'db1'
+    model_name = 'user'
+
 class TaggedUser(ormist.TaggedAttrsModel):
     objects = ormist.TaggedAttrsModelManager(['name', ])
 
@@ -23,12 +28,14 @@ def setup_function(function):
     User.objects.full_cleanup()
     Book.objects.full_cleanup()
     TaggedUser.objects.full_cleanup()
+    User2.objects.full_cleanup()
 
 
 def teardown_function(function):
     User.objects.full_cleanup()
     Book.objects.full_cleanup()
     TaggedUser.objects.full_cleanup()
+    User2.objects.full_cleanup()
 
 
 def pytest_funcarg__user(request):
@@ -44,6 +51,11 @@ def pytest_funcarg__user_db1(request):
     request.addfinalizer(lambda: user.delete(system='db1'))
     return user
 
+def pytest_funcarg__user2(request):
+    user = User2(1234, name='John Doe', age=30)
+    user.save()
+    request.addfinalizer(lambda: user.delete())
+    return user
 
 def pytest_funcarg__book(request):
     tags = ['foo', 'bar']
@@ -217,3 +229,9 @@ def test_different_systems(user_db1):
     assert User.objects.get(user_db1._id) is None
     # the record is in the 1st database
     assert User.objects.get(user_db1._id, system='db1') == user_db1
+
+def test_automatic_system_choice(user2):
+    # we can get saved user from the correct system in different manners
+    assert User2.objects.get(user2._id) == user2
+    assert User2.objects.get(user2._id, system='db1') == user2
+    assert User2.objects.get(user2._id, system='default') == None

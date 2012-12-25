@@ -60,13 +60,28 @@ class ModelManager(object):
             template = template.format(*args, **kwargs)
         return b(template)
 
-    def full_cleanup(self, system='default'):
+    def set_system(self, system):
+        """
+        setup default system for all models of the manager
+        """
+        self.system = system
+
+    def get_system(self, arg):
+        """
+        get system to use for operation. If arg is not None, use it, otherwise
+        use default system, defined in manager
+        """
+        return arg or self.system
+
+    def full_cleanup(self, system=None):
+        system = self.get_system(system)
         key = self._key('*')
         keys = get_redis(system).keys(key)
         if keys:
             get_redis(system).delete(*keys)
 
-    def get(self, _id, system='default'):
+    def get(self, _id, system=None):
+        system = self.get_system(system)
         _id = u(_id)
         if random_true(0.01):
             self.expire()
@@ -81,7 +96,8 @@ class ModelManager(object):
             attrs = pickle.loads(value)
             return self.model(_id, expire=expire, **attrs)
 
-    def save_instance(self, instance, system='default'):
+    def save_instance(self, instance, system=None):
+        system = self.get_system(system)
         if instance._id is None:
             instance._id = self.reserve_random_id(system=system)
 
@@ -97,11 +113,12 @@ class ModelManager(object):
             pipe.zadd(self._key('__expire__'), instance._id, expire_ts)
         pipe.execute()
 
-    def delete_instance(self, instance, system='default'):
+    def delete_instance(self, instance, system=None):
         self.delete_instance_by_id(instance._id, system=system)
 
     def delete_instance_by_id(self, instance_id, pipe=None, apply=True,
-                              system='default'):
+                              system=None):
+        system = self.get_system(system)
         instance_id = u(instance_id)
         all_key = self._key('__all__')
         expire_key = self._key('__expire__')
@@ -115,7 +132,8 @@ class ModelManager(object):
         if apply:
             pipe.execute()
 
-    def expire(self, system='default'):
+    def expire(self, system=None):
+        system = self.get_system(system)
         expire_ts = datetime_to_timestamp(utcnow())
         expire_key = self._key('__expire__')
         remove_ids = get_redis(system).zrangebyscore(expire_key, 0, expire_ts)
@@ -126,7 +144,8 @@ class ModelManager(object):
                                           system=system)
             pipe.execute()
 
-    def reserve_random_id(self, max_attempts=10, system='default'):
+    def reserve_random_id(self, max_attempts=10, system=None):
+        system = self.get_system(system)
         key = self._key('__all__')
         for _ in xrange(max_attempts):
             value = random_string(self.id_length)
@@ -135,13 +154,14 @@ class ModelManager(object):
                 return value
         raise RuntimeError('Unable to reserve random id for model "%s"' % self.model_name)
 
-    def all(self, system='default'):
+    def all(self, system=None):
+        system = self.get_system(system)
         all_key = self._key('__all__')
         ids = []
         if get_redis(system).exists(all_key):
             ids = get_redis(system).smembers(all_key)
         for _id in ids:
-            instance = self.get(_id, system='default')
+            instance = self.get(_id, system=system)
             if instance:
                 yield instance
 
@@ -151,7 +171,8 @@ class ModelManager(object):
 class TaggedModelManager(ModelManager):
 
 
-    def save_instance(self, instance, system='default'):
+    def save_instance(self, instance, system=None):
+        system = self.get_system(system)
         super(TaggedModelManager, self).save_instance(instance, system=system)
         if not instance.tags:
             return
@@ -167,9 +188,10 @@ class TaggedModelManager(ModelManager):
         pipe.execute()
         instance._saved_tags = instance.tags
 
-    def delete_instance(self, instance, system='default'):
+    def delete_instance(self, instance, system=None):
         # we have to remove instance from all tags before removing the
         # object itself
+        system = self.get_system(system)
         tags_keys = self._key('object:{0}:tags', u(instance._id))
         tags = get_redis(system).smembers(tags_keys)
         pipe = get_redis(system).pipeline()
@@ -180,7 +202,8 @@ class TaggedModelManager(ModelManager):
                                    system=system)
         pipe.execute()
 
-    def get(self, _id, system='default'):
+    def get(self, _id, system=None):
+        system = self.get_system(system)
         instance = super(TaggedModelManager, self).get(_id, system=system)
         if instance:
             tags_key = self._key('object:{0}:tags', u(_id))
@@ -189,7 +212,7 @@ class TaggedModelManager(ModelManager):
         return instance
 
     def find_ids(self, *tags, **kw):
-        system = kw.get('system', 'default')
+        system = self.get_system(kw.get('system'))
         if not tags:
             return []
         keys = []
@@ -199,7 +222,7 @@ class TaggedModelManager(ModelManager):
         return get_redis(system).sinter(*keys)
 
     def find(self, *tags, **kw):
-        system = kw.get('system', 'default')
+        system = self.get_system(kw.get('system'))
         ids = self.find_ids(system=system, *tags)
         for _id in ids:
             instance = self.get(_id, system=system)
@@ -220,7 +243,7 @@ class TaggedAttrsModelManager(TaggedModelManager):
         return tags
 
     def find(self, **attrs):
-        system = attrs.pop('system', 'default')
+        system = self.get_system(attrs.pop('system', None))
         tags = self.attrs_to_tags(attrs)
         for instance in super(TaggedAttrsModelManager, self).find(system=system, *tags):
             yield instance

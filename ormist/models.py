@@ -24,6 +24,7 @@ class ModelBase(type):
         attrs['objects'] = model_manager
         model_manager.model_name = attrs.pop('model_name', to_underscore(name))
         model_manager.id_length = attrs.pop('id_length', 16)
+        model_manager.system = attrs.pop('system', 'default')
         ret = type.__new__(cls, name, parents, attrs)
         model_manager.model = ret
         return ret
@@ -67,12 +68,12 @@ class Model(object):
     def set_expire(self, expire):
         self.expire = expire_to_datetime(expire)
 
-    def save(self, system='default'):
+    def save(self, system=None):
         if hasattr(self, 'validate') and callable(self.validate):
             self.validate()
         self.objects.save_instance(self, system=system)
 
-    def delete(self, system='default'):
+    def delete(self, system=None):
         self.objects.delete_instance(self, system=system)
 
     def set(self, **kwargs):

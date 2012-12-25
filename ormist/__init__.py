@@ -4,7 +4,7 @@ ORM -- object-to-redis mapper
 
 .. code-block:: python
 
-    from oauthist import orm
+    import ormist as orm
 
     r = redis.Redis()
     orm.configure(r, prefix='foo')

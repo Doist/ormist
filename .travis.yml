@@ -5,15 +5,6 @@ python:
   - "3.3"
   - "2.7"
   - "2.6"
-before_install:
-  - "sudo apt-get update -qq"
-  - "sudo apt-get install -qqyf python3.3-dev"
-  - "virtualenv --python=python3.3 ~/virtualenv/python3.3"
-  - "if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then source ~/virtualenv/python3.3/bin/activate; fi"
-  - "if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then pip install pytest --use-mirrors; fi"
-  - "if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then pip install mock --use-mirrors; fi"
-  - "python --version"
-  - "pip --version"
 install:
   - "pip install . --use-mirrors"
 script: py.test

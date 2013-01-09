@@ -44,7 +44,20 @@ class Model(object):
     """
 
 
-    def __init__(self, id=None, expire=None, **attrs):
+    def __init__(self, **attrs):
+        """
+        Create a new model instance.
+
+        :param id: optional. Create an instance with given id
+        :param expire: optional. Set up expiration timestamp for the instance.
+        When the expiration timestamp has reached, the model won't be accessible
+        anymore and eventually will be removed from the database
+
+        :param \*\*attrs: additional attributes of the instance. Will be pickled and
+        written to the store
+        """
+        id = attrs.pop('id', None)
+        expire = attrs.pop('expire', None)
         if id is not None:
             id = str(id)
         self.id = id
@@ -114,8 +127,22 @@ class TaggedModel(Model):
 
     objects = TaggedModelManager()
 
-    def __init__(self, id=None, tags=None, **kwargs):
-        super(TaggedModel, self).__init__(id, **kwargs)
+    def __init__(self, *tags, **kwargs):
+        """
+        Create a new tagged model instance.
+
+        :param \*tags: List of strings with tags for the given object. Later
+        instances can be found by these tags.
+
+        :param id: optional. Create an instance with given id
+        :param expire: optional. Set up expiration timestamp for the instance.
+        When the expiration timestamp has reached, the model won't be accessible
+        anymore and eventually will be removed from the database
+
+        :param \*\*attrs: additional attributes of the instance. Will be pickled and
+        written to the store
+        """
+        super(TaggedModel, self).__init__(**kwargs)
         self.tags = tags or []
         self._saved_tags = self.tags
 
@@ -123,9 +150,27 @@ class TaggedAttrsModel(TaggedModel):
 
     objects = TaggedAttrsModelManager(exclude_attrs=[])
 
-    def __init__(self, id=None, **attrs):
+    def __init__(self, **attrs):
+        """
+        Create a new tagged attrs model instance.
+
+        :param id: optional. Create an instance with given id
+        :param expire: optional. Set up expiration timestamp for the instance.
+        When the expiration timestamp has reached, the model won't be accessible
+        anymore and eventually will be removed from the database
+
+        :param \*\*attrs: additional attributes of the instance. Will be pickled and
+        written to the store. Additonally, values from the attrs will be converted
+        to tags, thus allowing you to search by them
+
+        .. note:: you may want to define the `exclude_attrs` class attribute
+                  and define a list of attributes (by names) which you don't
+                  want to use for search. To avoid database pollution we
+                  recommend to exclude keys having large values (like instance
+                  description), or random/unique values (like user passwords).
+        """
         tags = self.objects.attrs_to_tags(attrs)
-        super(TaggedAttrsModel, self).__init__(id, tags, **attrs)
+        super(TaggedAttrsModel, self).__init__(*tags, **attrs)
 
     def set(self, **kwargs):
         super(TaggedAttrsModel, self).set(**kwargs)

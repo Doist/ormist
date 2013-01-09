@@ -94,10 +94,10 @@ class ModelManager(object):
             if expire and expire < utcnow():
                 return None
             attrs = pickle.loads(value)
-            return self.model(id, expire=expire, **attrs)
+            return self.model(id=id, expire=expire, **attrs)
 
-    def create(self, **attrs):
-        model = self.model(**attrs)
+    def create(self, *args, **attrs):
+        model = self.model(*args, **attrs)
         model.save()
         return model
 

@@ -39,34 +39,34 @@ def teardown_function(function):
 
 
 def pytest_funcarg__user(request):
-    user = User(1234, name='John Doe', age=30)
+    user = User(id=1234, name='John Doe', age=30)
     user.save()
     request.addfinalizer(user.delete)
     return user
 
 
 def pytest_funcarg__user_db1(request):
-    user = User(1234, name='John Doe', age=30)
+    user = User(id=1234, name='John Doe', age=30)
     user.save('db1')
     request.addfinalizer(lambda: user.delete(system='db1'))
     return user
 
 def pytest_funcarg__user2(request):
-    user = User2(1234, name='John Doe', age=30)
+    user = User2(id=1234, name='John Doe', age=30)
     user.save()
     request.addfinalizer(lambda: user.delete())
     return user
 
 def pytest_funcarg__book(request):
     tags = ['foo', 'bar']
-    book = Book(1234, tags=tags, title='How to Foo and Bar')
+    book = Book('foo', 'bar', id=1234, title='How to Foo and Bar')
     book.save()
     request.addfinalizer(book.delete)
     return book
 
 
 def pytest_funcarg__tagged_user(request):
-    user = TaggedUser(1234, name='John Doe', age=30)
+    user = TaggedUser(id=1234, name='John Doe', age=30)
     user.save()
     request.addfinalizer(user.delete)
     return user
@@ -90,6 +90,11 @@ def test_manager_create():
     assert same_user.name == 'John Doe'
     assert same_user.age == 30
 
+def test_manager_create_tagged_model():
+    book = Book.objects.create('tag1', 'tag2')
+    same_book = list(Book.objects.find('tag1'))[0]
+    assert same_book == book
+    assert set(same_book.tags) == set(['tag1', 'tag2'])
 
 def test_get_none():
     assert User.objects.get(1234) is None

@@ -203,6 +203,9 @@ class ModelResultSet(object):
     def __len__(self):
         return self.count()
 
+    def __getitem__(self, item):
+        return self.list()[item]
+
 
 class TaggedModelManager(ModelManager):
 

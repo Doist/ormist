@@ -160,7 +160,7 @@ class TaggedAttrsModel(TaggedModel):
         anymore and eventually will be removed from the database
 
         :param \*\*attrs: additional attributes of the instance. Will be pickled and
-        written to the store. Additonally, values from the attrs will be converted
+        written to the store. Additionally, values from the attrs will be converted
         to tags, thus allowing you to search by them
 
         .. note:: you may want to define the `exclude_attrs` class attribute
@@ -179,3 +179,9 @@ class TaggedAttrsModel(TaggedModel):
     def unset(self, *args):
         super(TaggedAttrsModel, self).unset(*args)
         self.tags = self.objects.attrs_to_tags(self.attrs)
+
+
+class Verbose(object):
+    """ Verbose mix-in. Displays complete set of attributes in __repr__"""
+    def __repr__(self):
+        return '<%s id:%s attrs:%s>' % (self.__class__.__name__, self.id, self.attrs)

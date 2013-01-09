@@ -21,24 +21,62 @@ Library Features
   be destroyed in that period of time.
 - Familiar: API mimics the same of Django in many ways.
 
+Usage samples
+-------------
 
-Getting started
----------------
+No boilerplate code or configuration if your Redis listens ``localhost:6379``.
 
-If your Redis server runs on a different host or uses non-standard port to
-connect, or you want to use several Redis server to store different objects,
-you should configure library first.
-
-Every Redis connection is configured as a separate "system". There is already
-configured system named "default" which is connected with Redis installation on
-localhost, port 6379. This connection is also used as a default system
-for all operation, unless you explicitly specify other connection.
-
-Example configuration
+**Example 1.** How to work with sessions.
 
 .. code-block:: python
 
-    ormist.setup_redis('default', host='localhost', port=6379, db=1)
+    >>> class Session(ormist.Verbose, ormist.Model): pass
+    >>> sess = Session.objects.create(remote_addr='127.0.0.1', user_id=1)
+    <Session id:oprS4JI7jQZf01a3 attrs:{'user_id': 1, 'remote_addr': '127.0.0.1'}>
+    >>> sess2 = Session.objects.get('oprS4JI7jQZf01a3')
+    >>> sess2.remote_addr
+    '127.0.0.1'
+    >>> sess2.user_id
+    1
 
-.. note:: :func:`setup_redis` is not thread-safe. Avoid on-the-fly
-          reconfiguration of the service.
+**Example 2.** How to work with searchable tags.
+
+.. code-block:: python
+
+    >>> class TodoItem(ormist.Verbose, ormist.TaggedModel): pass
+    >>> TodoItem.objects.create('project1', 'project2', text='project1 and project2')
+    >>> TodoItem.objects.create('project2', 'project3', text='project2 and project3')
+    >>> TodoItem.objects.find('project1').list()
+    [<TodoItem id:QCh5rprrmo5AjcpG attrs:{'text': 'project1 and project2'}>]
+    >>> TodoItem.objects.find('project2').list()
+    [<TodoItem id:YmyUvYSVWW9jqfTz attrs:{'text': 'project2 and project3'}>,
+     <TodoItem id:QCh5rprrmo5AjcpG attrs:{'text': 'project1 and project2'}>]
+    >>> TodoItem.objects.find('project2', 'project3').list()
+    >>> [<TodoItem id:YmyUvYSVWW9jqfTz attrs:{'text': 'project2 and project3'}>]
+    >>>TodoItem.objects.find('project4').list()
+    []
+
+**Example 3.** How to work with searchable attributes.
+
+.. code-block:: python
+
+    >>> User.objects.create(name='John', age=30, department_id=1)
+    >>> User.objects.create(name='Mary', age=25, department_id=1)
+
+    # find by name
+    >>> User.objects.find(name='John').list()
+    [<User id:lu8uFHOuKYhvHX09 attrs:{'department_id': 1, 'age': 30, 'name': 'John'}>]
+
+    # find by department
+    >>> User.objects.find(department_id=1).list()
+    [<User id:lu8uFHOuKYhvHX09 attrs:{'department_id': 1, 'age': 30, 'name': 'John'}>,
+     <User id:OuS5PuV3ufO3nXuR attrs:{'department_id': 1, 'age': 25, 'name': 'Mary'}>]
+
+    # find by name and department
+    User.objects.find(name='Mary', department_id=1).list()
+    [<User id:OuS5PuV3ufO3nXuR attrs:{'department_id': 1, 'age': 25, 'name': 'Mary'}>]
+
+    # How it actually works: we just build tags on the fly
+    >>> john = User.objects.find(name='John')[0]
+    >>> john.tags
+    [u'department_id:1', u'name:John', u'age:30']

@@ -257,6 +257,8 @@ def test_model_result_set():
     User.objects.create()
     # playing with iterators
     users = User.objects.all()
+    User.objects.all()[0]  # it just works
+    User.objects.all()[:1]  # it just works
     assert users.count() == 3
     assert len(users) == 3
     assert len(users.list()) == 3

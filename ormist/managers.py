@@ -80,21 +80,21 @@ class ModelManager(object):
         if keys:
             get_redis(system).delete(*keys)
 
-    def get(self, _id, system=None):
+    def get(self, id, system=None):
         system = self.get_system(system)
-        _id = u(_id)
+        id = u(id)
         if random_true(0.01):
             self.expire()
-        key = self._key('object:{0}', _id)
+        key = self._key('object:{0}', id)
         value = get_redis(system).get(key)
         if value:
-            expire_key = self._key('object:{0}:expire', _id)
+            expire_key = self._key('object:{0}:expire', id)
             expire_value = get_redis(system).get(expire_key)
             expire = timestamp_to_datetime(expire_value)
             if expire and expire < utcnow():
                 return None
             attrs = pickle.loads(value)
-            return self.model(_id, expire=expire, **attrs)
+            return self.model(id, expire=expire, **attrs)
 
     def create(self, **attrs):
         model = self.model(**attrs)
@@ -103,23 +103,23 @@ class ModelManager(object):
 
     def save_instance(self, instance, system=None):
         system = self.get_system(system)
-        if instance._id is None:
-            instance._id = self.reserve_random_id(system=system)
+        if instance.id is None:
+            instance.id = self.reserve_random_id(system=system)
 
         # object itself
         value = pickle.dumps(instance.attrs)
 
         pipe = get_redis(system).pipeline()
-        pipe.sadd(self._key('__all__'), instance._id)
-        pipe.set(self._key('object:{0}', instance._id), value)
+        pipe.sadd(self._key('__all__'), instance.id)
+        pipe.set(self._key('object:{0}', instance.id), value)
         if instance.expire:
             expire_ts = datetime_to_timestamp(instance.expire)
-            pipe.set(self._key('object:{0}:expire', instance._id), expire_ts)
-            pipe.zadd(self._key('__expire__'), instance._id, expire_ts)
+            pipe.set(self._key('object:{0}:expire', instance.id), expire_ts)
+            pipe.zadd(self._key('__expire__'), instance.id, expire_ts)
         pipe.execute()
 
     def delete_instance(self, instance, system=None):
-        self.delete_instance_by_id(instance._id, system=system)
+        self.delete_instance_by_id(instance.id, system=system)
 
     def delete_instance_by_id(self, instance_id, pipe=None, apply=True,
                               system=None):
@@ -144,8 +144,8 @@ class ModelManager(object):
         remove_ids = get_redis(system).zrangebyscore(expire_key, 0, expire_ts)
         if remove_ids:
             pipe = get_redis(system).pipeline()
-            for _id in remove_ids:
-               self.delete_instance_by_id(_id, pipe=pipe, apply=False,
+            for id in remove_ids:
+               self.delete_instance_by_id(id, pipe=pipe, apply=False,
                                           system=system)
             pipe.execute()
 
@@ -165,8 +165,8 @@ class ModelManager(object):
         ids = []
         if get_redis(system).exists(all_key):
             ids = get_redis(system).smembers(all_key)
-        for _id in ids:
-            instance = self.get(_id, system=system)
+        for id in ids:
+            instance = self.get(id, system=system)
             if instance:
                 yield instance
 
@@ -182,14 +182,14 @@ class TaggedModelManager(ModelManager):
         if not instance.tags:
             return
         pipe = get_redis(system).pipeline()
-        tags_key = self._key('object:{0}:tags', instance._id)
+        tags_key = self._key('object:{0}:tags', instance.id)
         pipe.sadd(tags_key, *instance.tags)
         for tag in instance.tags:
             key = self._key('tags:{0}', tag)
-            pipe.sadd(key, instance._id)
+            pipe.sadd(key, instance.id)
         for tag_to_rm in set(instance._saved_tags) - set(instance.tags):
             key = self._key('tags:{0}', tag_to_rm)
-            pipe.srem(key, instance._id)
+            pipe.srem(key, instance.id)
         pipe.execute()
         instance._saved_tags = instance.tags
 
@@ -197,21 +197,21 @@ class TaggedModelManager(ModelManager):
         # we have to remove instance from all tags before removing the
         # object itself
         system = self.get_system(system)
-        tags_keys = self._key('object:{0}:tags', u(instance._id))
+        tags_keys = self._key('object:{0}:tags', u(instance.id))
         tags = get_redis(system).smembers(tags_keys)
         pipe = get_redis(system).pipeline()
         for tag in tags:
             key = self._key('tags:{0}', u(tag))
-            pipe.srem(key, instance._id)
-        self.delete_instance_by_id(instance._id, pipe=pipe, apply=False,
+            pipe.srem(key, instance.id)
+        self.delete_instance_by_id(instance.id, pipe=pipe, apply=False,
                                    system=system)
         pipe.execute()
 
-    def get(self, _id, system=None):
+    def get(self, id, system=None):
         system = self.get_system(system)
-        instance = super(TaggedModelManager, self).get(_id, system=system)
+        instance = super(TaggedModelManager, self).get(id, system=system)
         if instance:
-            tags_key = self._key('object:{0}:tags', u(_id))
+            tags_key = self._key('object:{0}:tags', u(id))
             tags = get_redis(system).smembers(u(tags_key)) or []
             instance.tags = [u(tag) for tag in tags]
         return instance
@@ -229,8 +229,8 @@ class TaggedModelManager(ModelManager):
     def find(self, *tags, **kw):
         system = self.get_system(kw.get('system'))
         ids = self.find_ids(system=system, *tags)
-        for _id in ids:
-            instance = self.get(_id, system=system)
+        for id in ids:
+            instance = self.get(id, system=system)
             if instance:
                 yield instance
 

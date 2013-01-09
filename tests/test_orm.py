@@ -86,7 +86,7 @@ def test_save_and_get(user):
 
 def test_manager_create():
     user = User.objects.create(name='John Doe', age=30)
-    same_user = User.objects.get(user._id)
+    same_user = User.objects.get(user.id)
     assert same_user.name == 'John Doe'
     assert same_user.age == 30
 
@@ -126,7 +126,7 @@ def test_delete_objects_cleans_up_tags(book, tags):
 
 
 def test_tags_save_delete(book, tags):
-    same_book = Book.objects.get(book._id)
+    same_book = Book.objects.get(book.id)
     assert set(same_book.tags) == set(tags)
 
 
@@ -178,9 +178,9 @@ def test_delete_tagged_model_removes_tags():
 
 def test_auto_id():
     user = User(name='Foo bar')
-    assert user._id is None
+    assert user.id is None
     user.save()
-    assert user._id is not None
+    assert user.id is not None
     user.delete()
 
 def test_auto_id_failed_random():
@@ -201,7 +201,7 @@ def test_expire_saves_attribute(user):
     user.save()
     with mock.patch('ormist.managers.utcnow') as utcnow:
         utcnow.return_value = datetime.datetime(2012, 1, 1)
-        same_user = User.objects.get(user._id)
+        same_user = User.objects.get(user.id)
     assert same_user.expire == datetime.datetime(2012, 1, 11)
 
 
@@ -210,7 +210,7 @@ def test_expire_removes_object_do_expire(user):
     user.save()
     with mock.patch('ormist.managers.random_true') as random_true:
         random_true.return_value = True
-        assert User.objects.get(user._id) is None
+        assert User.objects.get(user.id) is None
         assert list(User.objects.all()) == []
 
 
@@ -219,7 +219,7 @@ def test_expire_removes_object_do_not_expire(user):
     user.save()
     with mock.patch('ormist.managers.random_true') as random_true:
         random_true.return_value = False
-        assert User.objects.get(user._id) is None
+        assert User.objects.get(user.id) is None
         assert list(User.objects.all()) == []
 
 
@@ -233,12 +233,12 @@ def test_ttl(user):
 
 def test_different_systems(user_db1):
     # nothing is saved in default db
-    assert User.objects.get(user_db1._id) is None
+    assert User.objects.get(user_db1.id) is None
     # the record is in the 1st database
-    assert User.objects.get(user_db1._id, system='db1') == user_db1
+    assert User.objects.get(user_db1.id, system='db1') == user_db1
 
 def test_automatic_system_choice(user2):
     # we can get saved user from the correct system in different manners
-    assert User2.objects.get(user2._id) == user2
-    assert User2.objects.get(user2._id, system='db1') == user2
-    assert User2.objects.get(user2._id, system='default') == None
+    assert User2.objects.get(user2.id) == user2
+    assert User2.objects.get(user2.id, system='db1') == user2
+    assert User2.objects.get(user2.id, system='default') == None

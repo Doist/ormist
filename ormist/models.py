@@ -44,10 +44,10 @@ class Model(object):
     """
 
 
-    def __init__(self, _id=None, expire=None, **attrs):
-        if _id is not None:
-            _id = str(_id)
-        self._id = _id
+    def __init__(self, id=None, expire=None, **attrs):
+        if id is not None:
+            id = str(id)
+        self.id = id
         self.attrs = attrs
         self.expire = expire_to_datetime(expire)
 
@@ -60,10 +60,10 @@ class Model(object):
     def __eq__(self, other):
         if other.__class__ != self.__class__:
             return False
-        return self._id == other._id
+        return self.id == other.id
 
     def __repr__(self):
-        return '<%s id:%s>' % (self.__class__.__name__, self._id)
+        return '<%s id:%s>' % (self.__class__.__name__, self.id)
 
     def set_expire(self, expire):
         self.expire = expire_to_datetime(expire)
@@ -114,8 +114,8 @@ class TaggedModel(Model):
 
     objects = TaggedModelManager()
 
-    def __init__(self, _id=None, tags=None, **kwargs):
-        super(TaggedModel, self).__init__(_id, **kwargs)
+    def __init__(self, id=None, tags=None, **kwargs):
+        super(TaggedModel, self).__init__(id, **kwargs)
         self.tags = tags or []
         self._saved_tags = self.tags
 
@@ -123,9 +123,9 @@ class TaggedAttrsModel(TaggedModel):
 
     objects = TaggedAttrsModelManager(exclude_attrs=[])
 
-    def __init__(self, _id=None, **attrs):
+    def __init__(self, id=None, **attrs):
         tags = self.objects.attrs_to_tags(attrs)
-        super(TaggedAttrsModel, self).__init__(_id, tags, **attrs)
+        super(TaggedAttrsModel, self).__init__(id, tags, **attrs)
 
     def set(self, **kwargs):
         super(TaggedAttrsModel, self).set(**kwargs)

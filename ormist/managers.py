@@ -96,6 +96,11 @@ class ModelManager(object):
             attrs = pickle.loads(value)
             return self.model(_id, expire=expire, **attrs)
 
+    def create(self, **attrs):
+        model = self.model(**attrs)
+        model.save()
+        return model
+
     def save_instance(self, instance, system=None):
         system = self.get_system(system)
         if instance._id is None:

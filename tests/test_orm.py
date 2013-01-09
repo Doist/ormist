@@ -84,6 +84,13 @@ def test_save_and_get(user):
     assert same_user.age == 30
 
 
+def test_manager_create():
+    user = User.objects.create(name='John Doe', age=30)
+    same_user = User.objects.get(user._id)
+    assert same_user.name == 'John Doe'
+    assert same_user.age == 30
+
+
 def test_get_none():
     assert User.objects.get(1234) is None
 

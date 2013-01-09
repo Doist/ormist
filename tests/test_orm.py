@@ -247,3 +247,16 @@ def test_automatic_system_choice(user2):
     assert User2.objects.get(user2.id) == user2
     assert User2.objects.get(user2.id, system='db1') == user2
     assert User2.objects.get(user2.id, system='default') == None
+
+#--- Test for ModelResultSet
+
+def test_model_result_set():
+    # create three users
+    User.objects.create()
+    User.objects.create()
+    User.objects.create()
+    # playing with iterators
+    users = User.objects.all()
+    assert users.count() == 3
+    assert len(users) == 3
+    assert len(users.list()) == 3

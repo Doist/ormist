@@ -165,12 +165,43 @@ class ModelManager(object):
         ids = []
         if get_redis(system).exists(all_key):
             ids = get_redis(system).smembers(all_key)
-        for id in ids:
-            instance = self.get(id, system=system)
-            if instance:
-                yield instance
+        return ModelResultSet(self, ids, system)
 
 
+class ModelResultSet(object):
+
+    def __init__(self, manager, ids, system=None):
+        self.manager = manager
+        self.ids = ids
+        self.system = system
+        # we intentionally fill the cache only in list() method
+        self._cache = None
+
+    def __iter__(self):
+        if self._cache is not None:
+            for item in self._cache:
+                yield item
+        else:
+            for id in self.ids:
+                instance = self.manager.get(id, system=self.system)
+                if instance:
+                    yield instance
+
+    def list(self):
+        if self._cache is not None:
+            return self._cache
+
+        ret = []
+        for item in self:
+            ret.append(item)
+        self._cache = ret
+        return ret
+
+    def count(self):
+        return len(self.list())
+
+    def __len__(self):
+        return self.count()
 
 
 class TaggedModelManager(ModelManager):
@@ -229,10 +260,7 @@ class TaggedModelManager(ModelManager):
     def find(self, *tags, **kw):
         system = self.get_system(kw.get('system'))
         ids = self.find_ids(system=system, *tags)
-        for id in ids:
-            instance = self.get(id, system=system)
-            if instance:
-                yield instance
+        return ModelResultSet(self, ids, system)
 
 
 class TaggedAttrsModelManager(TaggedModelManager):
@@ -250,6 +278,4 @@ class TaggedAttrsModelManager(TaggedModelManager):
     def find(self, **attrs):
         system = self.get_system(attrs.pop('system', None))
         tags = self.attrs_to_tags(attrs)
-        for instance in super(TaggedAttrsModelManager, self).find(system=system, *tags):
-            yield instance
-
+        return super(TaggedAttrsModelManager, self).find(system=system, *tags)
